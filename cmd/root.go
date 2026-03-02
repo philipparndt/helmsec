@@ -7,9 +7,10 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "helmsec",
-	Short: "Encrypt and decrypt secret files using SOPS",
-	Long:  GetHelp("root"),
+	Use:          "helmsec",
+	Short:        "Encrypt and decrypt secret files using SOPS",
+	Long:         GetHelp("root"),
+	SilenceUsage: true,
 }
 
 func Execute() {

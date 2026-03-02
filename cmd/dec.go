@@ -55,8 +55,13 @@ func isGitIgnored(path string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
-		return false, nil
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		if exitErr.ExitCode() == 128 {
+			return false, fmt.Errorf("not inside a git repository — helmsec requires git to verify .gitignore rules")
+		}
 	}
 	return false, fmt.Errorf("git check-ignore failed: %w", err)
 }
