@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -49,14 +50,33 @@ func runDec(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func isGitIgnored(path string) (bool, error) {
+	err := exec.Command("git", "check-ignore", "-q", path).Run()
+	if err == nil {
+		return true, nil
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+		return false, nil
+	}
+	return false, fmt.Errorf("git check-ignore failed: %w", err)
+}
+
 func decryptFile(src string) error {
+	out := src + ".dec"
+	ignored, err := isGitIgnored(out)
+	if err != nil {
+		return fmt.Errorf("could not check gitignore status for %s: %w", out, err)
+	}
+	if !ignored {
+		return fmt.Errorf("%s would not be gitignored — add '*.dec' to .gitignore before decrypting", out)
+	}
+
 	format := sopsFormat(src)
 	data, err := decrypt.File(src, format)
 	if err != nil {
 		return err
 	}
 
-	out := src + ".dec"
 	if err := os.WriteFile(out, data, 0600); err != nil {
 		return err
 	}
