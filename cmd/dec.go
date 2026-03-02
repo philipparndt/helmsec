@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,8 +20,11 @@ var decCmd = &cobra.Command{
 	RunE:  runDec,
 }
 
+var decForce bool
+
 func init() {
 	rootCmd.AddCommand(decCmd)
+	decCmd.Flags().BoolVarP(&decForce, "force", "f", false, "skip .gitignore safety check")
 }
 
 func runDec(cmd *cobra.Command, args []string) error {
@@ -39,7 +43,7 @@ func runDec(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(os.Stderr, "skipping %s: already a .dec file\n", f)
 			continue
 		}
-		if err := decryptFile(f); err != nil {
+		if err := decryptFile(f, decForce); err != nil {
 			fmt.Fprintf(os.Stderr, "error decrypting %s: %v\n", f, err)
 			hasError = true
 		}
@@ -49,6 +53,8 @@ func runDec(cmd *cobra.Command, args []string) error {
 	}
 	return nil
 }
+
+var errNotGitRepo = errors.New("not inside a git repository")
 
 func isGitIgnored(path string) (bool, error) {
 	err := exec.Command("git", "check-ignore", "-q", path).Run()
@@ -60,20 +66,26 @@ func isGitIgnored(path string) (bool, error) {
 			return false, nil
 		}
 		if exitErr.ExitCode() == 128 {
-			return false, fmt.Errorf("not inside a git repository — helmsec requires git to verify .gitignore rules")
+			return false, errNotGitRepo
 		}
 	}
 	return false, fmt.Errorf("git check-ignore failed: %w", err)
 }
 
-func decryptFile(src string) error {
+func decryptFile(src string, force bool) error {
 	out := src + ".dec"
-	ignored, err := isGitIgnored(out)
-	if err != nil {
-		return fmt.Errorf("could not check gitignore status for %s: %w", out, err)
-	}
-	if !ignored {
-		return fmt.Errorf("%s would not be gitignored — add '*.dec' to .gitignore before decrypting", out)
+	if !force {
+		ignored, err := isGitIgnored(out)
+		if err != nil {
+			if errors.Is(err, errNotGitRepo) {
+				printWarning("not inside a git repository — skipping .gitignore check")
+			} else {
+				return fmt.Errorf("could not check gitignore status for %s: %w", out, err)
+			}
+		} else if !ignored {
+			printError(fmt.Sprintf("%s would not be gitignored — add '*.dec' to .gitignore before decrypting", out))
+			return fmt.Errorf("%s is not gitignored", out)
+		}
 	}
 
 	format := sopsFormat(src)

@@ -6,8 +6,14 @@ The `.dec` file should be added to `.gitignore` to avoid committing secrets.
 ## Usage
 
 ```
-helmsec dec <file-or-pattern>
+helmsec dec [--force] <file-or-pattern>
 ```
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--force` | `-f` | Skip the `.gitignore` safety check and decrypt regardless |
 
 ## Output
 
@@ -20,6 +26,14 @@ The decrypted content is written to `<input-file>.dec`. For example:
 
 Files already ending in `.dec` are skipped.
 
+## Safety check
+
+Before decrypting, helmsec verifies that the output `.dec` file would be matched by `.gitignore`
+to prevent accidentally committing plaintext secrets. If the check fails, an error is shown.
+
+Use `--force` to skip this check entirely, or run outside a git repository (a warning will be shown
+but decryption will proceed).
+
 ## Examples
 
 ```bash
@@ -31,6 +45,9 @@ helmsec dec "*.yaml"
 
 # Decrypt a file in a subdirectory
 helmsec dec config/secrets.yaml
+
+# Skip the .gitignore check
+helmsec dec --force secrets-dev-local.yaml
 ```
 
 ## Tip
