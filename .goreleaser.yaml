@@ -1,0 +1,101 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X helmsec/version.Version={{.Version}} -X helmsec/version.GitCommit={{.Commit}} -X helmsec/version.BuildDate={{.Date}}
+
+release:
+  github:
+    owner: philipparndt
+    name: helmsec
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+brews:
+  - name: helmsec
+
+    goarm: 6
+    goamd64: v1
+
+    url_template: "https://github.com/philipparndt/helmsec/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+    commit_author:
+      name: Philipp Arndt
+      email: opensource@rnd7.de
+
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    directory: Formula
+
+    caveats: "Run using helmsec."
+
+    homepage: "https://github.com/philipparndt/helmsec"
+
+    description: "CLI tool to encrypt and decrypt secret files using SOPS"
+
+    license: "Apache-2.0"
+
+    install: |
+      bin.install "helmsec"
+
+      begin
+        bash_output = Utils.safe_popen_read({ "SHELL" => "bash" }, "#{bin}/helmsec completion bash")
+        (bash_completion/"helmsec").write bash_output
+      rescue => e
+        opoo "Failed to install bash completion: #{e}"
+      end
+
+      begin
+        zsh_output = Utils.safe_popen_read({ "SHELL" => "zsh" }, "#{bin}/helmsec completion zsh")
+        (zsh_completion/"_helmsec").write zsh_output
+      rescue => e
+        opoo "Failed to install zsh completion: #{e}"
+      end
+
+      begin
+        fish_output = Utils.safe_popen_read({ "SHELL" => "fish" }, "#{bin}/helmsec completion fish")
+        (fish_completion/"helmsec.fish").write fish_output
+      rescue => e
+        opoo "Failed to install fish completion: #{e}"
+      end
+
+    repository:
+      owner: philipparndt
+      name: homebrew-helmsec
+      branch: main
+
+      pull_request:
+        enabled: false
+        draft: false

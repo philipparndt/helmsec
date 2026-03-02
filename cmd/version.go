@@ -1,0 +1,36 @@
+package cmd
+
+import (
+	"encoding/json"
+	"fmt"
+	"helmsec/version"
+
+	"github.com/spf13/cobra"
+)
+
+var jsonOutput bool
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version information",
+	Long:  GetHelp("version"),
+	Run: func(cmd *cobra.Command, args []string) {
+		info := version.Get()
+
+		if jsonOutput {
+			output, err := json.MarshalIndent(info, "", "  ")
+			if err != nil {
+				fmt.Printf("Error marshaling version info: %v\n", err)
+				return
+			}
+			fmt.Println(string(output))
+		} else {
+			fmt.Println(info.String())
+		}
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+	versionCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output version information in JSON format")
+}
