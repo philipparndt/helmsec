@@ -14,6 +14,7 @@ to `.gitignore` plaintext secrets while keeping the encrypted originals in versi
 ### Homebrew
 
 ```bash
+brew tap philipparndt/helmsec
 brew install philipparndt/helmsec/helmsec
 ```
 
