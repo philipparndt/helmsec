@@ -92,7 +92,14 @@ func decryptFile(src string, force bool) error {
 	format := sopsFormat(src)
 	data, err := decrypt.File(src, format)
 	if err != nil {
-		return err
+		// If sops is available, run it directly to get detailed error output
+		if _, err := exec.LookPath("sops"); err == nil {
+			sopsOut, _ := exec.Command("sops", src).CombinedOutput()
+			if sopsOut != nil && len(sopsOut) > 0 {
+				return fmt.Errorf("failed to decrypt %s:\n%s", src, strings.TrimSpace(string(sopsOut)))
+			}
+		}
+		return fmt.Errorf("failed to decrypt %s: %v", src, err)
 	}
 
 	if err := os.WriteFile(out, data, 0600); err != nil {
