@@ -11,10 +11,10 @@ import (
 )
 
 var encCmd = &cobra.Command{
-	Use:   "enc <file-or-pattern>",
+	Use:   "enc <file-or-pattern> [<file-or-pattern>...]",
 	Short: "Encrypt a plaintext file using SOPS",
 	Long:  GetHelp("enc"),
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MinimumNArgs(1),
 	RunE:  runEnc,
 }
 
@@ -23,20 +23,21 @@ func init() {
 }
 
 func runEnc(cmd *cobra.Command, args []string) error {
-	pattern := args[0]
-	files, err := filepath.Glob(pattern)
-	if err != nil {
-		return fmt.Errorf("invalid pattern: %w", err)
-	}
-	if files == nil {
-		files = []string{pattern}
-	}
-
 	var hasError bool
-	for _, f := range files {
-		if err := encryptFile(f); err != nil {
-			fmt.Fprintf(os.Stderr, "error encrypting %s: %v\n", f, err)
-			hasError = true
+	for _, pattern := range args {
+		files, err := filepath.Glob(pattern)
+		if err != nil {
+			return fmt.Errorf("invalid pattern: %w", err)
+		}
+		if files == nil {
+			files = []string{pattern}
+		}
+
+		for _, f := range files {
+			if err := encryptFile(f); err != nil {
+				fmt.Fprintf(os.Stderr, "error encrypting %s: %v\n", f, err)
+				hasError = true
+			}
 		}
 	}
 	if hasError {

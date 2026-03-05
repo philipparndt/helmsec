@@ -13,10 +13,10 @@ import (
 )
 
 var decCmd = &cobra.Command{
-	Use:   "dec <file-or-pattern>",
+	Use:   "dec <file-or-pattern> [<file-or-pattern>...]",
 	Short: "Decrypt a SOPS-encrypted file to a .dec plaintext file",
 	Long:  GetHelp("dec"),
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MinimumNArgs(1),
 	RunE:  runDec,
 }
 
@@ -28,24 +28,25 @@ func init() {
 }
 
 func runDec(cmd *cobra.Command, args []string) error {
-	pattern := args[0]
-	files, err := filepath.Glob(pattern)
-	if err != nil {
-		return fmt.Errorf("invalid pattern: %w", err)
-	}
-	if files == nil {
-		files = []string{pattern}
-	}
-
 	var hasError bool
-	for _, f := range files {
-		if strings.HasSuffix(f, ".dec") {
-			fmt.Fprintf(os.Stderr, "skipping %s: already a .dec file\n", f)
-			continue
+	for _, pattern := range args {
+		files, err := filepath.Glob(pattern)
+		if err != nil {
+			return fmt.Errorf("invalid pattern: %w", err)
 		}
-		if err := decryptFile(f, decForce); err != nil {
-			fmt.Fprintf(os.Stderr, "error decrypting %s: %v\n", f, err)
-			hasError = true
+		if files == nil {
+			files = []string{pattern}
+		}
+
+		for _, f := range files {
+			if strings.HasSuffix(f, ".dec") {
+				fmt.Fprintf(os.Stderr, "skipping %s: already a .dec file\n", f)
+				continue
+			}
+			if err := decryptFile(f, decForce); err != nil {
+				fmt.Fprintf(os.Stderr, "error decrypting %s: %v\n", f, err)
+				hasError = true
+			}
 		}
 	}
 	if hasError {
