@@ -3,7 +3,7 @@ module helmsec
 go 1.25.0
 
 require (
-	github.com/charmbracelet/glamour v0.10.0
+	github.com/charmbracelet/glamour/v2 v2.0.0
 	github.com/getsops/sops/v3 v3.12.1
 	github.com/spf13/cobra v1.10.2
 )
